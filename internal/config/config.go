@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/hsldymq/smb_mount/pkg/smb"
 	"github.com/spf13/viper"
 )
 
@@ -25,7 +24,7 @@ func Load(path string) (*Config, error) {
 
 	// Check if file exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, &smb.ConfigError{Path: path, Err: fmt.Errorf("config file not found")}
+		return nil, &ConfigError{Path: path, Err: fmt.Errorf("config file not found")}
 	}
 
 	// Create new viper instance
@@ -36,23 +35,23 @@ func Load(path string) (*Config, error) {
 
 	// Read config file
 	if err := v.ReadInConfig(); err != nil {
-		return nil, &smb.ConfigError{Path: path, Err: fmt.Errorf("failed to read config: %w", err)}
+		return nil, &ConfigError{Path: path, Err: fmt.Errorf("failed to read config: %w", err)}
 	}
 
 	// Unmarshal config
 	cfg := &Config{}
 	if err := v.Unmarshal(cfg); err != nil {
-		return nil, &smb.ConfigError{Path: path, Err: fmt.Errorf("failed to parse config: %w", err)}
+		return nil, &ConfigError{Path: path, Err: fmt.Errorf("failed to parse config: %w", err)}
 	}
 
 	// Validate config
 	if err := validate.Struct(cfg); err != nil {
-		return nil, &smb.ConfigError{Path: path, Err: fmt.Errorf("config validation failed: %w", err)}
+		return nil, &ConfigError{Path: path, Err: fmt.Errorf("config validation failed: %w", err)}
 	}
 
 	// Apply defaults and resolve paths
 	if err := cfg.Normalize(); err != nil {
-		return nil, &smb.ConfigError{Path: path, Err: fmt.Errorf("failed to normalize config: %w", err)}
+		return nil, &ConfigError{Path: path, Err: fmt.Errorf("failed to normalize config: %w", err)}
 	}
 
 	return cfg, nil
@@ -210,4 +209,18 @@ func DefaultConfigPath() string {
 		return ""
 	}
 	return filepath.Join(home, ".config", "smb_mount_config.yaml")
+}
+
+// ConfigError 配置加载或验证错误
+type ConfigError struct {
+	Path string
+	Err  error
+}
+
+func (e *ConfigError) Error() string {
+	return fmt.Sprintf("config error (%s): %s", e.Path, e.Err)
+}
+
+func (e *ConfigError) Unwrap() error {
+	return e.Err
 }

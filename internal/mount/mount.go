@@ -3,7 +3,6 @@ package mount
 import (
     "fmt"
     "github.com/hsldymq/smb_mount/internal/config"
-    "github.com/hsldymq/smb_mount/pkg/smb"
     "os"
     "os/exec"
 )
@@ -21,13 +20,13 @@ func Mount(entry *config.MountEntry) error {
 
     // Create mount directory if it doesn't exist
     if err := os.MkdirAll(entry.ActualMountPath, 0755); err != nil {
-        return &smb.MountError{Op: "mount", Path: entry.ActualMountPath, Err: fmt.Errorf("failed to create mount directory: %w", err)}
+        return &MountError{Op: "mount", Path: entry.ActualMountPath, Err: fmt.Errorf("failed to create mount directory: %w", err)}
     }
 
     // Create credentials file
     credsFile, err := createCredentialFile(entry)
     if err != nil {
-        return &smb.MountError{Op: "mount", Path: entry.ActualMountPath, Err: err}
+        return &MountError{Op: "mount", Path: entry.ActualMountPath, Err: err}
     }
     defer os.Remove(credsFile)
 
@@ -37,7 +36,7 @@ func Mount(entry *config.MountEntry) error {
     // Execute mount command
     output, err := cmd.CombinedOutput()
     if err != nil {
-        return &smb.MountError{Op: "mount", Path: entry.ActualMountPath, Err: fmt.Errorf("mount failed: %w\nOutput: %s", err, string(output))}
+        return &MountError{Op: "mount", Path: entry.ActualMountPath, Err: fmt.Errorf("mount failed: %w\nOutput: %s", err, string(output))}
     }
 
     return nil
@@ -127,4 +126,19 @@ func EnsureBaseDir(baseDir string) error {
     }
 
     return nil
+}
+
+// MountError 挂载或卸载操作期间发生的错误
+type MountError struct {
+    Op   string // 操作类型："mount" 或 "umount"
+    Path string
+    Err  error
+}
+
+func (e *MountError) Error() string {
+    return fmt.Sprintf("%s %s: %s", e.Op, e.Path, e.Err)
+}
+
+func (e *MountError) Unwrap() error {
+    return e.Err
 }
