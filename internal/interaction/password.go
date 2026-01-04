@@ -5,7 +5,6 @@ import (
     "strings"
 
     tea "github.com/charmbracelet/bubbletea"
-    "github.com/charmbracelet/lipgloss"
 )
 
 // PasswordModel 密码输入的 BubbleTea 模型
@@ -93,15 +92,6 @@ func (m PasswordModel) View() string {
 func (m PasswordModel) GetPassword() string {
     return string(m.Password)
 }
-
-// Styles for password prompt
-var (
-    promptStyle = lipgloss.NewStyle().
-        Foreground(lipgloss.Color("86"))
-
-    errorStyle = lipgloss.NewStyle().
-        Foreground(lipgloss.Color("196"))
-)
 
 // PromptPassword 使用 BubbleTea 提示用户输入密码
 func PromptPassword(promptText string, showAsterisk bool) (string, error) {
