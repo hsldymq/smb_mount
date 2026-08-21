@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/hsldymq/gomount/internal/config"
@@ -170,6 +171,19 @@ daemon:
 	}
 	if !strings.Contains(out.String(), "daemon: not running") {
 		t.Fatalf("expected not running output, got %q", out.String())
+	}
+}
+
+func TestDaemonUnavailableErrorIncludesConnectionRefused(t *testing.T) {
+	err := &os.PathError{Op: "dial", Path: "/tmp/gomount.sock", Err: syscall.ECONNREFUSED}
+	if !isDaemonUnavailableError(err) {
+		t.Fatalf("expected connection refused to mean daemon unavailable, got %v", err)
+	}
+}
+
+func TestDaemonUnavailableErrorRejectsOtherErrors(t *testing.T) {
+	if isDaemonUnavailableError(os.ErrPermission) {
+		t.Fatal("expected permission errors to remain visible")
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/hsldymq/gomount/internal/config"
@@ -742,7 +743,7 @@ func refreshAllStatus(ctx context.Context, mgr *drivers.Manager, cfg *config.Con
 	}
 	resp, err := client.Status(ctx, snapshotsFromEntries(entriesWithoutPasswords, managed))
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if isDaemonUnavailableError(err) {
 			return nil
 		}
 		fmt.Fprintf(os.Stderr, "Warning: failed to query daemon status: %v\n", err)
@@ -758,6 +759,10 @@ func refreshAllStatus(ctx context.Context, mgr *drivers.Manager, cfg *config.Con
 		}
 	}
 	return nil
+}
+
+func isDaemonUnavailableError(err error) bool {
+	return errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ECONNREFUSED)
 }
 
 func unmountEntries(ctx context.Context, mgr *drivers.Manager, entries []*config.MountEntry) (success, fail int) {
